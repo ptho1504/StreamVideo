@@ -73,6 +73,7 @@ public class EncodingService {
 
             // Step 1: Download raw video from S3
             String localVideoPath = jobPath + "/raw_video.mp4";
+            log.info("Downloading to: {}", localVideoPath);
             downloadFromS3(event.getVideoKey(), localVideoPath);
             log.info("Raw video downloaded to {}", localVideoPath);
 
@@ -84,7 +85,7 @@ public class EncodingService {
                 int bitrate = quality[1];
                 int height = quality[2];
 
-                String qualityDir = jobPath + "/encoded" + height + "p";
+                String qualityDir = jobPath + "/encoded/" + height + "p";
                 Files.createDirectories(Paths.get(qualityDir));
 
                 encodeToHLS(localVideoPath, qualityDir, width, height, bitrate);
@@ -152,6 +153,7 @@ public class EncodingService {
     }
 
     private void uploadEncodeFilesToS3(String localDir, String s3Prefix) {
+        log.info("Uploading encode files to S3: localDir {}, s3Prefix {}", localDir, s3Prefix);
         File directory = new File(localDir);
         uploadDirectoryToS3(directory, localDir, s3Prefix);
     }
@@ -183,11 +185,11 @@ public class EncodingService {
     private void generateMasterPlaylist(String masterPlayListPath) throws IOException {
         StringBuilder masterPlaylist = new StringBuilder();
         masterPlaylist.append("#EXTM3U\n");
-        masterPlaylist.append("EXT-X-VERSION:3\n\n");
+        masterPlaylist.append("#EXT-X-VERSION:3\n\n");
 
         // Add each quality to master playlist
 
-        int[][] qualities = {{1920, 5000, 1090}, {1280, 2800, 720}, {854, 1200, 480}, {800, 640, 360}};
+        int[][] qualities = {{1920, 5000, 1080}, {1280, 2800, 720}, {854, 1200, 480}, {800, 640, 360}};
 
 
         for(int []q: qualities) {
@@ -195,9 +197,9 @@ public class EncodingService {
             int bitrate = q[1];
             int height = q[2];
 
-            masterPlaylist.append("#EXT-X-STREAM-INF:BANDWIDTH=\n")
+            masterPlaylist.append("#EXT-X-STREAM-INF:BANDWIDTH=")
                     .append(bitrate * 1000)
-                    .append(", RESOLUTION=").append(width).append("x").append(height)
+                    .append(",RESOLUTION=").append(width).append("x").append(height)
                     .append(",CODECS=\"avc1.42e01ea,m4a.40.2\"\n");
             masterPlaylist.append(height).append("p/playlist.m3u8\n\n");
         }
@@ -228,9 +230,8 @@ public class EncodingService {
 
         ProcessBuilder processBuilder = new ProcessBuilder(command);
         processBuilder.redirectErrorStream(true);
-
+        processBuilder.inheritIO();
         Process process = processBuilder.start();
-
         int exitCode = process.waitFor();
 
         if (exitCode != 0) {
