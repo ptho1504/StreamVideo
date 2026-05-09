@@ -1,10 +1,14 @@
 spring:
   application:
-    name: encoding-service
+    name: streaming-service
+  data:
+    redis:
+      host: localhost
+      port: 6379
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
-      group-id: encoding-service-group
+      group-id: streaming-service-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
@@ -18,16 +22,12 @@ spring:
                 headers: false
             value:
               default:
-                type: com.ptho1504.encoding_service.event.VideoUploadedEvent
+                type: com.ptho1504.streaming_service.event.VideoEncodedEvent
 
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
-  port: 8083
+  port: 8084
 
-# AWS Config
 
 aws:
   access-key: ${AWS_ACCESS_KEY}
@@ -35,16 +35,7 @@ aws:
   region: ${AWS_REGION}
   s3:
     bucket-name: ${AWS_BUCKET_NAME}
-
-
-# FFmpeg Configuration
-ffmpeg:
-  path: ${FFMPEG_PATH:C:/ffmpeg/bin/ffmpeg.exe}
-
-# Encoding path
-encoding:
-  base-path: ${TEMP_DIR:C:/Users/phuoc/OneDrive/Desktop/Pj/StreamVideo/temp}
-
+    presigned-url-expiry: 60
 management:
   endpoints:
     web:
